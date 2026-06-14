@@ -1,16 +1,36 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Expense Tracker</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>💰 Expense Tracker</h1>
+    <div class="container">
 
+        <h1>💰 Expense Tracker</h1>
+
+        <div class="balance-card">
+            <h2>Total Balance</h2>
+            <p id="balance">₹0</p>
+        </div>
+
+        <div class="cards">
+            <div class="income-card">
+                <h3>Income</h3>
+                <p>₹0</p>
+            </div>
+
+            <div class="expense-card">
+                <h3>Expense</h3>
+                <p>₹0</p>
+            </div>
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
 </body>
 </html>
-<div class="balance-card">
-    <h2>Total Balance</h2>
-    <p>₹0</p>
-</div>
