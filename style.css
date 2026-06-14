@@ -7,3 +7,22 @@ body {
 h1 {
     margin-top: 40px;
 }
+.balance-card {
+    background: white;
+    width: 85%;
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+}
+
+.balance-card h2 {
+    margin: 0;
+    color: #555;
+}
+
+.balance-card p {
+    font-size: 32px;
+    font-weight: bold;
+    color: green;
+}
