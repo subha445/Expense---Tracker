@@ -42,7 +42,17 @@ It helps users track income and expenses with real-time balance updates and visu
 
 ---
 
-## 📂 Project Structure---
+
+## 📂 Project Structure
+
+```text
+expense-tracker/
+│
+├── index.html      # Main application interface
+├── style.css       # Styling and responsive design
+├── script.js       # Application logic and chart handling
+└── README.md       # Project documentation
+```
 
 ## 📊 Visualization
 
