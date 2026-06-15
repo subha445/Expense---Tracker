@@ -32,6 +32,7 @@ function updateUI() {
             <td>${transaction.description}</td>
             <td>₹${transaction.amount}</td>
             <td>${transaction.type}</td>
+            <td><button>Delete</button></td>
         `;
 
         history.appendChild(row);
