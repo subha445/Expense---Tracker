@@ -1,4 +1,3 @@
-let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 const description = document.getElementById("description");
 const amount = document.getElementById("amount");
 const type = document.getElementById("type");
@@ -12,6 +11,43 @@ const history = document.getElementById("transaction-list");
 let totalIncome = 0;
 let totalExpense = 0;
 
+// Load saved transactions
+let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
+
+function saveTransactions() {
+    localStorage.setItem("transactions", JSON.stringify(transactions));
+}
+
+function updateUI() {
+    history.innerHTML = "";
+
+    totalIncome = 0;
+    totalExpense = 0;
+
+    transactions.forEach(transaction => {
+
+        const row = document.createElement("tr");
+
+        row.innerHTML = `
+            <td>${transaction.description}</td>
+            <td>₹${transaction.amount}</td>
+            <td>${transaction.type}</td>
+        `;
+
+        history.appendChild(row);
+
+        if (transaction.type === "income") {
+            totalIncome += transaction.amount;
+        } else {
+            totalExpense += transaction.amount;
+        }
+    });
+
+    income.textContent = "₹" + totalIncome;
+    expense.textContent = "₹" + totalExpense;
+    balance.textContent = "₹" + (totalIncome - totalExpense);
+}
+
 addBtn.addEventListener("click", () => {
 
     const desc = description.value;
@@ -23,26 +59,18 @@ addBtn.addEventListener("click", () => {
         return;
     }
 
-    if (transactionType === "income") {
-        totalIncome += amt;
-    } else {
-        totalExpense += amt;
-    }
+    transactions.push({
+        description: desc,
+        amount: amt,
+        type: transactionType
+    });
 
-    income.textContent = "₹" + totalIncome;
-    expense.textContent = "₹" + totalExpense;
-    balance.textContent = "₹" + (totalIncome - totalExpense);
-
-    const row = document.createElement("tr");
-
-    row.innerHTML = `
-        <td>${desc}</td>
-        <td>₹${amt}</td>
-        <td>${transactionType}</td>
-    `;
-
-    history.appendChild(row);
+    saveTransactions();
+    updateUI();
 
     description.value = "";
     amount.value = "";
 });
+
+// Load data when page opens
+updateUI();
