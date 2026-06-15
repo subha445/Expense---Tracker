@@ -11,7 +11,6 @@ const history = document.getElementById("transaction-list");
 let totalIncome = 0;
 let totalExpense = 0;
 
-// Load saved transactions
 let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 
 function saveTransactions() {
@@ -19,6 +18,7 @@ function saveTransactions() {
 }
 
 function updateUI() {
+
     history.innerHTML = "";
 
     totalIncome = 0;
@@ -29,12 +29,14 @@ function updateUI() {
         const row = document.createElement("tr");
 
         row.innerHTML = `
-            row.innerHTML = `
-    <td>${transaction.description}</td>
-    <td>₹${transaction.amount}</td>
-    <td>${transaction.type}</td>
-    <td><button onclick="deleteTransaction(${index})">Delete</button></td>
-
+            <td>${transaction.description}</td>
+            <td>₹${transaction.amount}</td>
+            <td>${transaction.type}</td>
+            <td>
+                <button onclick="deleteTransaction(${index})">
+                    Delete
+                </button>
+            </td>
         `;
 
         history.appendChild(row);
@@ -53,7 +55,7 @@ function updateUI() {
 
 addBtn.addEventListener("click", () => {
 
-    const desc = description.value;
+    const desc = description.value.trim();
     const amt = Number(amount.value);
     const transactionType = type.value;
 
@@ -75,12 +77,12 @@ addBtn.addEventListener("click", () => {
     amount.value = "";
 });
 
-// Load data when page opens
-
-updateUI();
 function deleteTransaction(index) {
+
     transactions.splice(index, 1);
 
     saveTransactions();
     updateUI();
 }
+
+updateUI();
