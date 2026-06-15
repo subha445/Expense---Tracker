@@ -29,10 +29,12 @@ function updateUI() {
         const row = document.createElement("tr");
 
         row.innerHTML = `
-            <td>${transaction.description}</td>
-            <td>₹${transaction.amount}</td>
-            <td>${transaction.type}</td>
-            <td><button>Delete</button></td>
+            row.innerHTML = `
+    <td>${transaction.description}</td>
+    <td>₹${transaction.amount}</td>
+    <td>${transaction.type}</td>
+    <td><button onclick="deleteTransaction(${index})">Delete</button></td>
+
         `;
 
         history.appendChild(row);
