@@ -24,7 +24,7 @@ function updateUI() {
     totalIncome = 0;
     totalExpense = 0;
 
-    transactions.forEach(transaction => {
+    transactions.forEach((transaction, index) => {
 
         const row = document.createElement("tr");
 
@@ -76,4 +76,11 @@ addBtn.addEventListener("click", () => {
 });
 
 // Load data when page opens
+
 updateUI();
+function deleteTransaction(index) {
+    transactions.splice(index, 1);
+
+    saveTransactions();
+    updateUI();
+}
