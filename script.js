@@ -1,16 +1,13 @@
-const addBtn = document.getElementById("addBtn");
-
 const description = document.getElementById("description");
 const amount = document.getElementById("amount");
 const type = document.getElementById("type");
+const addBtn = document.getElementById("addBtn");
 
 const balance = document.getElementById("balance");
 const income = document.getElementById("income");
 const expense = document.getElementById("expense");
+const history = document.getElementById("transaction-list");
 
-const transactionList = document.getElementById("transaction-list");
-
-let totalBalance = 0;
 let totalIncome = 0;
 let totalExpense = 0;
 
@@ -25,6 +22,16 @@ addBtn.addEventListener("click", () => {
         return;
     }
 
+    if (transactionType === "income") {
+        totalIncome += amt;
+    } else {
+        totalExpense += amt;
+    }
+
+    income.textContent = "₹" + totalIncome;
+    expense.textContent = "₹" + totalExpense;
+    balance.textContent = "₹" + (totalIncome - totalExpense);
+
     const row = document.createElement("tr");
 
     row.innerHTML = `
@@ -33,19 +40,7 @@ addBtn.addEventListener("click", () => {
         <td>${transactionType}</td>
     `;
 
-    transactionList.appendChild(row);
-
-    if (transactionType === "income") {
-        totalIncome += amt;
-        totalBalance += amt;
-    } else {
-        totalExpense += amt;
-        totalBalance -= amt;
-    }
-
-    income.textContent = `₹${totalIncome}`;
-    expense.textContent = `₹${totalExpense}`;
-    balance.textContent = `₹${totalBalance}`;
+    history.appendChild(row);
 
     description.value = "";
     amount.value = "";
