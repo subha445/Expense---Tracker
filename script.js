@@ -1,3 +1,4 @@
+let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 const description = document.getElementById("description");
 const amount = document.getElementById("amount");
 const type = document.getElementById("type");
