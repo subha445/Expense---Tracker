@@ -12,36 +12,70 @@
 
         <h1>💰 Expense Tracker</h1>
 
+        <!-- Balance Card -->
         <div class="balance-card">
             <h2>Total Balance</h2>
             <p id="balance">₹0</p>
         </div>
 
+        <!-- Income & Expense Cards -->
         <div class="cards">
 
             <div class="income-card">
                 <h3>Income</h3>
-                <p>₹0</p>
+                <p id="income">₹0</p>
             </div>
 
             <div class="expense-card">
                 <h3>Expense</h3>
-                <p>₹0</p>
+                <p id="expense">₹0</p>
             </div>
 
         </div>
 
+        <!-- Add Transaction Form -->
         <div class="form-card">
 
             <h2>Add Transaction</h2>
 
-            <input type="text" placeholder="Description">
+            <input type="text" id="description" placeholder="Description">
 
-            <input type="number" placeholder="Amount">
+            <input type="number" id="amount" placeholder="Amount">
 
-            <select>
-                <option>Income</option>
-                <option>Expense</option>
+            <select id="type">
+                <option value="income">Income</option>
+                <option value="expense">Expense</option>
             </select>
 
-            <button>Add Transaction</button>
+            <button id="addBtn">Add Transaction</button>
+
+        </div>
+
+        <!-- Transaction History -->
+        <div class="history-card">
+
+            <h2>Transaction History</h2>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Amount</th>
+                        <th>Type</th>
+                    </tr>
+                </thead>
+
+                <tbody id="transaction-list">
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+    <script src="script.js"></script>
+
+</body>
+</html>
