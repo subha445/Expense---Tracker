@@ -6,10 +6,7 @@ const addBtn = document.getElementById("addBtn");
 const balance = document.getElementById("balance");
 const income = document.getElementById("income");
 const expense = document.getElementById("expense");
-const history = document.getElementById("transaction-list");
-
-let totalIncome = 0;
-let totalExpense = 0;
+const transactionList = document.getElementById("transaction-list");
 
 let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 
@@ -19,10 +16,10 @@ function saveTransactions() {
 
 function updateUI() {
 
-    history.innerHTML = "";
+    transactionList.innerHTML = "";
 
-    totalIncome = 0;
-    totalExpense = 0;
+    let totalIncome = 0;
+    let totalExpense = 0;
 
     transactions.forEach((transaction, index) => {
 
@@ -39,7 +36,7 @@ function updateUI() {
             </td>
         `;
 
-        history.appendChild(row);
+        transactionList.appendChild(row);
 
         if (transaction.type === "income") {
             totalIncome += transaction.amount;
@@ -78,9 +75,7 @@ addBtn.addEventListener("click", () => {
 });
 
 function deleteTransaction(index) {
-
     transactions.splice(index, 1);
-
     saveTransactions();
     updateUI();
 }
