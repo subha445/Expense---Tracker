@@ -1,38 +1,50 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
 body {
     font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
-    text-align: center;
+    background: #f4f7fc;
+    padding: 20px;
+}
+
+.container {
+    max-width: 900px;
+    margin: auto;
 }
 
 h1 {
-    margin-top: 40px;
+    text-align: center;
+    margin-bottom: 25px;
+    color: #1e293b;
 }
 
 .balance-card {
     background: white;
-    width: 85%;
-    margin: 20px auto;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    padding: 25px;
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
 }
 
 .balance-card h2 {
-    margin: 0;
-    color: #555;
+    color: #64748b;
+    margin-bottom: 10px;
 }
 
 .balance-card p {
     font-size: 32px;
     font-weight: bold;
-    color: green;
+    color: #16a34a;
 }
 
 .cards {
     display: flex;
     gap: 15px;
-    width: 85%;
-    margin: 20px auto;
+    margin-bottom: 20px;
 }
 
 .income-card,
@@ -40,99 +52,98 @@ h1 {
     flex: 1;
     background: white;
     padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    border-radius: 15px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .income-card {
-    border-left: 5px solid green;
+    border-left: 5px solid #16a34a;
 }
 
 .expense-card {
-    border-left: 5px solid red;
+    border-left: 5px solid #dc2626;
 }
 
 .income-card h3 {
-    color: green;
+    color: #16a34a;
 }
 
 .expense-card h3 {
-    color: red;
+    color: #dc2626;
 }
 
-.form-card {
+.form-card,
+.history-card {
     background: white;
-    width: 85%;
-    margin: 20px auto;
     padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    border-radius: 15px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.form-card h2,
+.history-card h2 {
+    margin-bottom: 15px;
+    color: #1e293b;
 }
 
 .form-card input,
 .form-card select {
-    width: 90%;
+    width: 100%;
     padding: 12px;
-    margin: 10px 0;
-    border: 1px solid #ccc;
+    margin-bottom: 12px;
+    border: 1px solid #cbd5e1;
     border-radius: 8px;
-    font-size: 16px;
 }
 
 .form-card button {
-    width: 90%;
+    width: 100%;
     padding: 12px;
+    border: none;
     background: #2563eb;
+    color: white;
+    font-size: 16px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.form-card button:hover {
+    background: #1d4ed8;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: #2563eb;
+    color: white;
+    padding: 12px;
+}
+
+td {
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: center;
+}
+
+td button {
+    background: #dc2626;
     color: white;
     border: none;
-    border-radius: 8px;
-    font-size: 16px;
-}
-.history-card {
-    background: white;
-    width: 85%;
-    margin: 20px auto;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
 }
 
-table {
-    width: 100%;
-    border-collapse: collapse;
+td button:hover {
+    background: #b91c1c;
 }
 
-th {
-    background: #2563eb;
-    color: white;
-    padding: 10px;
-}
-
-td {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
-}
-.history-card {
-    background: white;
-    width: 85%;
-    margin: 20px auto;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th {
-    background: #2563eb;
-    color: white;
-    padding: 10px;
-}
-
-td {
-    padding: 10px;
-    border-bottom: 1px solid #ddd;
+@media (max-width: 768px) {
+    .cards {
+        flex-direction: column;
+    }
 }
