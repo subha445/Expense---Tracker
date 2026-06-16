@@ -10,15 +10,16 @@ It helps users track income and expenses with real-time balance updates and visu
 
 ---
 
-## ✨ Features
+## Features
 
-- ➕ Add Income and Expense transactions
-- ❌ Delete transactions
-- 💰 Real-time balance calculation
-- 📊 Income vs Expense pie chart
-- 💾 Data saved using LocalStorage
-- 🔄 Auto-updating UI without refresh
-- 📱 Clean and responsive design
+📈 Track Income and Expenses
+💰 Real-Time Balance Updates
+📝 Transaction History
+🗑️ Delete Transactions
+💾 LocalStorage Support
+📱 Mobile-Friendly Design
+🎨 Clean and Modern UI
+⚡ Fast and Lightweight
 
 ---
 
