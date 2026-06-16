@@ -10,8 +10,29 @@ const transactionList = document.getElementById("transaction-list");
 
 let transactions = JSON.parse(localStorage.getItem("transactions")) || [];
 
+let chart;
+
 function saveTransactions() {
     localStorage.setItem("transactions", JSON.stringify(transactions));
+}
+
+function updateChart(incomeAmount, expenseAmount) {
+
+    const ctx = document.getElementById("expenseChart");
+
+    if (chart) {
+        chart.destroy();
+    }
+
+    chart = new Chart(ctx, {
+        type: "pie",
+        data: {
+            labels: ["Income", "Expense"],
+            datasets: [{
+                data: [incomeAmount, expenseAmount]
+            }]
+        }
+    });
 }
 
 function updateUI() {
@@ -48,6 +69,8 @@ function updateUI() {
     income.textContent = "₹" + totalIncome;
     expense.textContent = "₹" + totalExpense;
     balance.textContent = "₹" + (totalIncome - totalExpense);
+
+    updateChart(totalIncome, totalExpense);
 }
 
 addBtn.addEventListener("click", () => {
@@ -76,6 +99,7 @@ addBtn.addEventListener("click", () => {
 
 function deleteTransaction(index) {
     transactions.splice(index, 1);
+
     saveTransactions();
     updateUI();
 }
