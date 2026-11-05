@@ -759,11 +759,6 @@ $("removePinButton").addEventListener("click", async () => {
   if (pin === null) return;
 
   try {
-    $("removePinButton").addEventListener("click", async () => {
-  const pin = prompt("Enter your current PIN:");
-  if (pin === null) return;
-
-  try {
     if (await hashPin(pin) !== localStorage.getItem(KEYS.pin)) {
       alert("Incorrect PIN.");
       return;
@@ -776,7 +771,6 @@ $("removePinButton").addEventListener("click", async () => {
   }
 });
 
-// Initialize the expense tracker
 if (localStorage.getItem(KEYS.pin)) {
   showLock();
 }
