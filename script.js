@@ -1,286 +1,214 @@
+/* =========================================
+   NEON PRO EXPENSE TRACKER
+   ========================================= */
+
 const $ = (id) => document.getElementById(id);
 
-const STORAGE_KEY = "neon_transactions";
-const BUDGET_KEY = "neon_monthly_budget";
+const KEYS = {
+  transactions: "neon_transactions",
+  budget: "neon_monthly_budget",
+  goals: "neon_goals",
+  theme: "neon_theme",
+  pin: "neon_pin_hash",
+  light: "neon_light_mode"
+};
 
-let transactions = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-let monthlyBudget = Number(localStorage.getItem(BUDGET_KEY) || 0);
+function loadData(key, fallback) {
+  try {
+    const value = localStorage.getItem(key);
+    return value === null ? fallback : JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+let transactions = loadData(KEYS.transactions, []);
+let goals = loadData(KEYS.goals, []);
+let budget = Number(localStorage.getItem(KEYS.budget)) || 0;
+
+if (!Array.isArray(transactions)) transactions = [];
+if (!Array.isArray(goals)) goals = [];
+
+let currentMonth = new Date();
+let selectedDay = null;
 let expenseChart = null;
+let monthlyChart = null;
 
-const money = (value) =>
+const money = (amount) =>
   new Intl.NumberFormat("en-IN", {
     style: "currency",
     currency: "INR",
     maximumFractionDigits: 0
-  }).format(value);
+  }).format(Number(amount) || 0);
 
-const today = new Date().toLocaleDateString("en-CA");
-$("date").value = today;
-
-function saveData() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(transactions));
-  localStorage.setItem(BUDGET_KEY, String(monthlyBudget));
+function saveTransactions() {
+  localStorage.setItem(KEYS.transactions, JSON.stringify(transactions));
 }
 
-function escapeHTML(value) {
-  return String(value).replace(/[&<>"']/g, char => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[char]);
+function saveGoals() {
+  localStorage.setItem(KEYS.goals, JSON.stringify(goals));
 }
+
+function dateKey(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+function monthKey(date) {
+  return dateKey(new Date(date.getFullYear(), date.getMonth(), 1)).slice(0, 7);
+}
+
+function monthTransactions(month) {
+  return transactions.filter(t => t.date && t.date.startsWith(month));
+}
+
+function total(type, list = transactions) {
+  return list
+    .filter(t => t.type === type)
+    .reduce((sum, t) => sum + Number(t.amount || 0), 0);
+}
+
+/* =========================================
+   DASHBOARD
+   ========================================= */
 
 function updateDashboard() {
-  const income = transactions
-    .filter(t => t.type === "income")
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  const expense = transactions
-    .filter(t => t.type === "expense")
-    .reduce((sum, t) => sum + t.amount, 0);
-
+  const income = total("income");
+  const expense = total("expense");
   const balance = income - expense;
-  const savings = income > 0 ? (balance / income) * 100 : 0;
+  const rate = income > 0 ? ((balance / income) * 100) : 0;
 
-  $("totalBalance").textContent = money(balance);
-  $("totalIncome").textContent = money(income);
-  $("totalExpense").textContent = money(expense);
-  $("savingsRate").textContent = `${savings.toFixed(1)}%`;
+  if ($("totalBalance")) $("totalBalance").textContent = money(balance);
+  if ($("totalIncome")) $("totalIncome").textContent = money(income);
+  if ($("totalExpense")) $("totalExpense").textContent = money(expense);
+  if ($("savingsRate")) $("savingsRate").textContent = `${rate.toFixed(1)}%`;
 
   updateBudget();
-  updateChart();
+  renderTransactions();
+  renderCharts();
+  renderCalendar();
+  renderGoals();
 }
 
-function updateBudget() {
-  const now = new Date();
-  const month = now.getMonth();
-  const year = now.getFullYear();
-
-  const spent = transactions
-    .filter(t => {
-      const d = new Date(t.date + "T00:00:00");
-      return t.type === "expense" &&
-        d.getMonth() === month &&
-        d.getFullYear() === year;
-    })
-    .reduce((sum, t) => sum + t.amount, 0);
-
-  $("budgetSpent").textContent = money(spent);
-  $("budgetRemaining").textContent = monthlyBudget
-    ? money(monthlyBudget - spent)
-    : "Not set";
-
-  const percent = monthlyBudget
-    ? Math.min((spent / monthlyBudget) * 100, 100)
-    : 0;
-
-  $("budgetProgress").style.width = percent + "%";
-
-  $("budgetMessage").textContent = !monthlyBudget
-    ? "Set a monthly budget to start tracking."
-    : spent > monthlyBudget
-      ? "You've crossed your monthly budget."
-      : `${Math.max(0, 100 - (spent / monthlyBudget) * 100).toFixed(1)}% of your budget remains.`;
-}
-
-function updateChart() {
-  const totals = {};
-
-  transactions
-    .filter(t => t.type === "expense")
-    .forEach(t => {
-      totals[t.category] = (totals[t.category] || 0) + t.amount;
-    });
-
-  const labels = Object.keys(totals);
-  const values = Object.values(totals);
-
-  const colors = [
-    "#a855f7", "#ff4fd8", "#35e8ff",
-    "#43e6a1", "#ffb454", "#7c8cff",
-    "#ff668d", "#b8a0ff", "#5dd6c0", "#aaa0bc"
-  ];
-
-  const canvas = $("expenseChart");
-
-  if (expenseChart) {
-    expenseChart.destroy();
-    expenseChart = null;
-  }
-
-  expenseChart = new Chart(canvas, {
-    type: "doughnut",
-    data: {
-      labels,
-      datasets: [{
-        data: values,
-        backgroundColor: colors,
-        borderColor: "#11111f",
-        borderWidth: 4,
-        hoverOffset: 8
-      }]
-    },
-    options: {
-      responsive: true,
-      maintainAspectRatio: false,
-      cutout: "72%",
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          callbacks: {
-            label: context =>
-              `${context.label}: ${money(context.raw)}`
-          }
-        }
-      }
-    }
-  });
-
-  $("categoryLegend").replaceChildren();
-
-  if (!labels.length) {
-    const empty = document.createElement("p");
-    empty.className = "empty-message";
-    empty.textContent = "Add expenses to see your breakdown.";
-    $("categoryLegend").appendChild(empty);
-    return;
-  }
-
-  labels.forEach((label, index) => {
-    const item = document.createElement("div");
-    item.className = "legend-item";
-
-    const dot = document.createElement("span");
-    dot.className = "legend-dot";
-    dot.style.background = colors[index % colors.length];
-
-    const name = document.createElement("span");
-    name.textContent = label;
-
-    const amount = document.createElement("strong");
-    amount.className = "legend-value";
-    amount.textContent = money(values[index]);
-
-    item.append(dot, name, amount);
-    $("categoryLegend").appendChild(item);
-  });
-}
+/* =========================================
+   TRANSACTIONS
+   ========================================= */
 
 function renderTransactions() {
-  const search = $("searchInput").value.toLowerCase();
-  const type = $("filterType").value;
-  const category = $("filterCategory").value;
+  const container = $("transactionList");
+  if (!container) return;
 
-  const filtered = transactions
-    .filter(t =>
-      t.description.toLowerCase().includes(search) &&
-      (type === "all" || t.type === type) &&
-      (category === "all" || t.category === category)
-    )
-    .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+  container.replaceChildren();
 
-  const tbody = $("transactionList");
-  tbody.replaceChildren();
+  const search = ($("searchInput")?.value || "").toLowerCase();
+  const typeFilter = $("filterType")?.value || "all";
+  const categoryFilter = $("filterCategory")?.value || "all";
+
+  const filtered = [...transactions]
+    .filter(t => {
+      const matchesSearch =
+        (t.description || "").toLowerCase().includes(search) ||
+        (t.category || "").toLowerCase().includes(search);
+
+      const matchesType =
+        typeFilter === "all" || t.type === typeFilter;
+
+      const matchesCategory =
+        categoryFilter === "all" || t.category === categoryFilter;
+
+      return matchesSearch && matchesType && matchesCategory;
+    })
+    .sort((a, b) => b.date.localeCompare(a.date));
 
   if (!filtered.length) {
-    const row = document.createElement("tr");
-    const cell = document.createElement("td");
-    cell.colSpan = 5;
-    cell.className = "empty-message";
-    cell.textContent = "No matching transactions found.";
-    row.appendChild(cell);
-    tbody.appendChild(row);
+    const empty = document.createElement("p");
+    empty.className = "empty-state";
+    empty.textContent = "No transactions found.";
+    container.append(empty);
     return;
   }
 
   filtered.forEach(t => {
-    const row = document.createElement("tr");
+    const item = document.createElement("div");
+    item.className = "transaction-item";
 
-    const description = document.createElement("td");
-    description.textContent = t.description;
+    const details = document.createElement("div");
+    details.className = "transaction-details";
 
-    const categoryCell = document.createElement("td");
-    const tag = document.createElement("span");
-    tag.className = "type-tag";
-    tag.textContent = t.category;
-    categoryCell.appendChild(tag);
+    const name = document.createElement("strong");
+    name.textContent = t.description;
 
-    const date = document.createElement("td");
-    date.textContent = t.date;
+    const info = document.createElement("small");
+    info.textContent = `${t.category} • ${t.date}`;
 
-    const amount = document.createElement("td");
-    amount.className = t.type === "income"
-      ? "amount-income"
-      : "amount-expense";
+    details.append(name, info);
+
+    const amount = document.createElement("strong");
+    amount.className = t.type === "income" ? "income" : "expense";
     amount.textContent =
-      `${t.type === "income" ? "+" : "−"}${money(t.amount)}`;
+      `${t.type === "income" ? "+" : "-"}${money(t.amount)}`;
 
-    const actions = document.createElement("td");
-    const buttons = document.createElement("div");
-    buttons.className = "action-buttons";
+    const actions = document.createElement("div");
+    actions.className = "transaction-actions";
 
     const edit = document.createElement("button");
     edit.textContent = "Edit";
+    edit.type = "button";
     edit.addEventListener("click", () => editTransaction(t.id));
 
     const remove = document.createElement("button");
     remove.textContent = "Delete";
-    remove.className = "delete-button";
+    remove.type = "button";
     remove.addEventListener("click", () => deleteTransaction(t.id));
 
-    buttons.append(edit, remove);
-    actions.appendChild(buttons);
-
-    row.append(description, categoryCell, date, amount, actions);
-    tbody.appendChild(row);
+    actions.append(edit, remove);
+    item.append(details, amount, actions);
+    container.append(item);
   });
 }
 
-$("transactionForm").addEventListener("submit", event => {
+$("transactionForm")?.addEventListener("submit", event => {
   event.preventDefault();
 
+  const id = $("editId").value;
   const description = $("description").value.trim();
   const amount = Number($("amount").value);
   const type = $("type").value;
   const category = $("category").value;
   const date = $("date").value;
-  const editId = Number($("editId").value);
 
   if (!description || !Number.isFinite(amount) || amount <= 0 || !date) {
     alert("Please enter valid transaction details.");
     return;
   }
 
-  if (editId) {
-    const index = transactions.findIndex(t => t.id === editId);
+  const transaction = {
+    id: id || String(Date.now()),
+    description,
+    amount,
+    type,
+    category,
+    date
+  };
 
-    if (index !== -1) {
-      transactions[index] = {
-        ...transactions[index],
-        description,
-        amount,
-        type,
-        category,
-        date
-      };
-    }
+  if (id) {
+    transactions = transactions.map(t =>
+      t.id === id ? transaction : t
+    );
   } else {
-    transactions.push({
-      id: Date.now(),
-      description,
-      amount,
-      type,
-      category,
-      date
-    });
+    transactions.push(transaction);
   }
 
-  saveData();
+  saveTransactions();
+  $("transactionForm").reset();
+  $("editId").value = "";
+  $("submitButton").textContent = "Add Transaction";
+  $("cancelEdit")?.classList.add("hidden");
+  $("date").value = dateKey(new Date());
+
   updateDashboard();
-  renderTransactions();
-  resetForm();
 });
 
 function editTransaction(id) {
@@ -293,32 +221,265 @@ function editTransaction(id) {
   $("type").value = t.type;
   $("category").value = t.category;
   $("date").value = t.date;
-  $("submitButton").textContent = "Save Changes";
-  $("cancelEdit").classList.remove("hidden");
 
-  $("transactions").scrollIntoView({ behavior: "smooth" });
+  $("submitButton").textContent = "Update Transaction";
+  $("cancelEdit")?.classList.remove("hidden");
+
+  $("transactionForm").scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
 }
 
 function deleteTransaction(id) {
   if (!confirm("Delete this transaction?")) return;
 
   transactions = transactions.filter(t => t.id !== id);
-  saveData();
+  saveTransactions();
   updateDashboard();
-  renderTransactions();
 }
 
-function resetForm() {
+$("cancelEdit")?.addEventListener("click", () => {
   $("transactionForm").reset();
   $("editId").value = "";
-  $("date").value = today;
-  $("submitButton").textContent = "＋ Add Transaction";
+  $("submitButton").textContent = "Add Transaction";
   $("cancelEdit").classList.add("hidden");
+  $("date").value = dateKey(new Date());
+});
+
+/* =========================================
+   SEARCH AND FILTER
+   ========================================= */
+
+$("searchInput")?.addEventListener("input", renderTransactions);
+$("filterType")?.addEventListener("change", renderTransactions);
+$("filterCategory")?.addEventListener("change", renderTransactions);
+
+/* =========================================
+   CHARTS
+   ========================================= */
+
+function renderCharts() {
+  if (typeof Chart === "undefined") return;
+
+  const expenses = transactions.filter(t => t.type === "expense");
+  const categories = {};
+
+  expenses.forEach(t => {
+    categories[t.category] =
+      (categories[t.category] || 0) + Number(t.amount);
+  });
+
+  const labels = Object.keys(categories);
+  const values = Object.values(categories);
+
+  const expenseCanvas = $("expenseChart");
+
+  if (expenseCanvas) {
+    if (expenseChart) expenseChart.destroy();
+
+    expenseChart = new Chart(expenseCanvas, {
+      type: "doughnut",
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderWidth: 2,
+          hoverOffset: 12
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }
+
+  const legend = $("categoryLegend");
+
+  if (legend) {
+    legend.replaceChildren();
+
+    labels.forEach((label, index) => {
+      const row = document.createElement("p");
+      row.textContent = `${label}: ${money(values[index])}`;
+      legend.append(row);
+    });
+  }
+
+  renderMonthlyChart();
 }
 
-$("cancelEdit").addEventListener("click", resetForm);
+function renderMonthlyChart() {
+  const canvas = $("monthlyChart");
+  if (!canvas || typeof Chart === "undefined") return;
 
-$("budgetForm").addEventListener("submit", event => {
+  const labels = [];
+  const incomeData = [];
+  const expenseData = [];
+
+  for (let i = 5; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(1);
+    date.setMonth(date.getMonth() - i);
+
+    const key = monthKey(date);
+    const list = monthTransactions(key);
+
+    labels.push(date.toLocaleDateString("en-IN", {
+      month: "short",
+      year: "2-digit"
+    }));
+
+    incomeData.push(total("income", list));
+    expenseData.push(total("expense", list));
+  }
+
+  if (monthlyChart) monthlyChart.destroy();
+
+  monthlyChart = new Chart(canvas, {
+    type: "bar",
+    data: {
+      labels,
+      datasets: [
+        {
+          label: "Income",
+          data: incomeData,
+          borderRadius: 6
+        },
+        {
+          label: "Expenses",
+          data: expenseData,
+          borderRadius: 6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      }
+    }
+  });
+}
+
+/* =========================================
+   CALENDAR
+   ========================================= */
+
+function renderCalendar() {
+  const grid = $("calendarGrid");
+  if (!grid) return;
+
+  const year = currentMonth.getFullYear();
+  const month = currentMonth.getMonth();
+
+  const firstDay = new Date(year, month, 1);
+  const lastDate = new Date(year, month + 1, 0).getDate();
+
+  $("calendarMonth").textContent =
+    currentMonth.toLocaleDateString("en-IN", {
+      month: "long",
+      year: "numeric"
+    });
+
+  grid.replaceChildren();
+
+  ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    .forEach(day => {
+      const label = document.createElement("div");
+      label.className = "calendar-weekday";
+      label.textContent = day;
+      grid.append(label);
+    });
+
+  for (let i = 0; i < firstDay.getDay(); i++) {
+    const blank = document.createElement("div");
+    grid.append(blank);
+  }
+
+  for (let day = 1; day <= lastDate; day++) {
+    const date = new Date(year, month, day);
+    const key = dateKey(date);
+    const daily = transactions.filter(t => t.date === key);
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "calendar-day";
+    button.textContent = day;
+
+    if (key === dateKey(new Date())) button.classList.add("today");
+    if (key === selectedDay) button.classList.add("selected");
+    if (daily.length) button.classList.add("has-transactions");
+
+    button.addEventListener("click", () => {
+      selectedDay = key;
+      renderCalendar();
+      showSelectedDay(key);
+    });
+
+    grid.append(button);
+  }
+
+  if (!selectedDay || !selectedDay.startsWith(monthKey(currentMonth))) {
+    selectedDay = dateKey(new Date(year, month, 1));
+    showSelectedDay(selectedDay);
+  }
+}
+
+function showSelectedDay(key) {
+  const info = $("selectedDayInfo");
+  if (!info) return;
+
+  const daily = transactions.filter(t => t.date === key);
+  const income = total("income", daily);
+  const expense = total("expense", daily);
+
+  info.textContent = daily.length
+    ? `${key} — ${daily.length} transaction(s) | Income: ${money(income)} | Expenses: ${money(expense)}`
+    : `${key} — No transactions`;
+}
+
+$("prevMonth")?.addEventListener("click", () => {
+  currentMonth.setMonth(currentMonth.getMonth() - 1);
+  renderCalendar();
+});
+
+$("nextMonth")?.addEventListener("click", () => {
+  currentMonth.setMonth(currentMonth.getMonth() + 1);
+  renderCalendar();
+});
+
+/* =========================================
+   MONTHLY BUDGET
+   ========================================= */
+
+function updateBudget() {
+  const current = monthTransactions(monthKey(new Date()));
+  const spent = total("expense", current);
+  const remaining = budget - spent;
+  const percent = budget > 0 ? Math.min((spent / budget) * 100, 100) : 0;
+
+  if ($("budgetSpent")) $("budgetSpent").textContent = money(spent);
+  if ($("budgetRemaining")) $("budgetRemaining").textContent = money(remaining);
+  if ($("budgetProgress")) $("budgetProgress").style.width = `${percent}%`;
+
+  if ($("budgetMessage")) {
+    $("budgetMessage").textContent = !budget
+      ? "Set a monthly budget to begin."
+      : remaining >= 0
+        ? `You have ${money(remaining)} left this month.`
+        : `You exceeded your budget by ${money(Math.abs(remaining))}.`;
+  }
+
+  if ($("budgetAmount")) $("budgetAmount").value = budget || "";
+}
+
+$("budgetForm")?.addEventListener("submit", event => {
   event.preventDefault();
 
   const value = Number($("budgetAmount").value);
@@ -328,18 +489,257 @@ $("budgetForm").addEventListener("submit", event => {
     return;
   }
 
-  monthlyBudget = value;
-  saveData();
+  budget = value;
+  localStorage.setItem(KEYS.budget, String(budget));
   updateBudget();
-  $("budgetAmount").value = "";
 });
 
-["searchInput", "filterType", "filterCategory"].forEach(id => {
-  $(id).addEventListener("input", renderTransactions);
-  $(id).addEventListener("change", renderTransactions);
+/* =========================================
+   SAVINGS GOALS
+   ========================================= */
+
+function renderGoals() {
+  const container = $("goalsList");
+  if (!container) return;
+
+  container.replaceChildren();
+
+  if (!goals.length) {
+    const empty = document.createElement("p");
+    empty.textContent = "No savings goals yet. Create your first goal!";
+    container.append(empty);
+    return;
+  }
+
+  goals.forEach(goal => {
+    const card = document.createElement("div");
+    card.className = "goal-card";
+
+    const name = document.createElement("h3");
+    name.textContent = goal.name;
+
+    const progressText = document.createElement("p");
+    progressText.textContent =
+      `${money(goal.saved)} saved of ${money(goal.target)}`;
+
+    const progress = document.createElement("progress");
+    progress.max = 100;
+    progress.value = Math.min(
+      100,
+      (goal.saved / goal.target) * 100
+    );
+
+    const actions = document.createElement("div");
+    actions.className = "goal-actions";
+
+    const update = document.createElement("button");
+    update.textContent = "Update Saved";
+    update.type = "button";
+    update.addEventListener("click", () => {
+      const value = prompt(
+        "Enter your total saved amount:",
+        String(goal.saved)
+      );
+
+      if (value === null) return;
+
+      const amount = Number(value);
+
+      if (!Number.isFinite(amount) || amount < 0) {
+        alert("Enter a valid amount.");
+        return;
+      }
+
+      goal.saved = amount;
+      saveGoals();
+      renderGoals();
+    });
+
+    const remove = document.createElement("button");
+    remove.textContent = "Delete";
+    remove.type = "button";
+    remove.addEventListener("click", () => {
+      if (!confirm("Delete this goal?")) return;
+
+      goals = goals.filter(g => g.id !== goal.id);
+      saveGoals();
+      renderGoals();
+    });
+
+    actions.append(update, remove);
+    card.append(name, progressText, progress, actions);
+    container.append(card);
+  });
+}
+
+$("goalForm")?.addEventListener("submit", event => {
+  event.preventDefault();
+
+  const name = $("goalName").value.trim();
+  const target = Number($("goalTarget").value);
+  const saved = Number($("goalSaved").value || 0);
+
+  if (!name || !Number.isFinite(target) || target <= 0 ||
+      !Number.isFinite(saved) || saved < 0) {
+    alert("Please enter valid goal details.");
+    return;
+  }
+
+  goals.push({
+    id: String(Date.now()),
+    name,
+    target,
+    saved
+  });
+
+  saveGoals();
+  $("goalForm").reset();
+  renderGoals();
 });
 
-$("exportCSV").addEventListener("click", () => {
+/* =========================================
+   THEMES
+   ========================================= */
+
+function applyTheme(theme) {
+  document.body.classList.remove(
+    "theme-cyber",
+    "theme-pink",
+    "theme-green"
+  );
+
+  if (theme !== "purple") {
+    document.body.classList.add(`theme-${theme}`);
+  }
+
+  localStorage.setItem(KEYS.theme, theme);
+}
+
+document.querySelectorAll(".theme-choice").forEach(button => {
+  button.addEventListener("click", () => {
+    applyTheme(button.dataset.theme);
+  });
+});
+
+const savedTheme = localStorage.getItem(KEYS.theme) || "purple";
+applyTheme(savedTheme);
+
+function applyLightMode(enabled) {
+  document.body.classList.toggle("light-mode", enabled);
+  localStorage.setItem(KEYS.light, enabled ? "true" : "false");
+}
+
+applyLightMode(localStorage.getItem(KEYS.light) === "true");
+
+$("themeToggle")?.addEventListener("click", () => {
+  applyLightMode(!document.body.classList.contains("light-mode"));
+});
+
+/* =========================================
+   PIN LOCK
+   Convenience lock for this browser only.
+   ========================================= */
+
+async function hashPin(pin) {
+  const data = new TextEncoder().encode(pin);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+
+  return Array.from(new Uint8Array(hash))
+    .map(byte => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function showLock() {
+  $("lockScreen")?.classList.remove("hidden");
+}
+
+function hideLock() {
+  $("lockScreen")?.classList.add("hidden");
+  if ($("pinInput")) $("pinInput").value = "";
+  if ($("pinError")) $("pinError").textContent = "";
+}
+
+$("unlockButton")?.addEventListener("click", async () => {
+  const pin = $("pinInput").value;
+
+  if (!/^\d{4,8}$/.test(pin)) {
+    $("pinError").textContent = "Enter your 4–8 digit PIN.";
+    return;
+  }
+
+  try {
+    const savedHash = localStorage.getItem(KEYS.pin);
+    const enteredHash = await hashPin(pin);
+
+    if (enteredHash === savedHash) {
+      hideLock();
+    } else {
+      $("pinError").textContent = "Incorrect PIN. Try again.";
+    }
+  } catch {
+    $("pinError").textContent = "PIN feature is unavailable in this browser.";
+  }
+});
+
+$("pinInput")?.addEventListener("keydown", event => {
+  if (event.key === "Enter") $("unlockButton")?.click();
+});
+
+$("setPinButton")?.addEventListener("click", async () => {
+  const pin = prompt("Create a 4–8 digit PIN:");
+
+  if (pin === null) return;
+
+  if (!/^\d{4,8}$/.test(pin)) {
+    alert("PIN must contain 4–8 digits.");
+    return;
+  }
+
+  const confirmPin = prompt("Confirm your PIN:");
+
+  if (pin !== confirmPin) {
+    alert("PINs do not match.");
+    return;
+  }
+
+  try {
+    localStorage.setItem(KEYS.pin, await hashPin(pin));
+    alert("PIN created successfully!");
+  } catch {
+    alert("PIN setup is unavailable in this browser.");
+  }
+});
+
+$("removePinButton")?.addEventListener("click", async () => {
+  const pin = prompt("Enter your current PIN:");
+
+  if (pin === null) return;
+
+  try {
+    const savedHash = localStorage.getItem(KEYS.pin);
+
+    if (await hashPin(pin) !== savedHash) {
+      alert("Incorrect PIN.");
+      return;
+    }
+
+    localStorage.removeItem(KEYS.pin);
+    alert("PIN removed.");
+    hideLock();
+  } catch {
+    alert("Unable to verify PIN.");
+  }
+});
+
+if (localStorage.getItem(KEYS.pin)) {
+  showLock();
+}
+
+/* =========================================
+   CSV EXPORT
+   ========================================= */
+
+$("exportCSV")?.addEventListener("click", () => {
   if (!transactions.length) {
     alert("No transactions to export.");
     return;
@@ -348,7 +748,11 @@ $("exportCSV").addEventListener("click", () => {
   const rows = [
     ["Description", "Amount", "Type", "Category", "Date"],
     ...transactions.map(t => [
-      t.description, t.amount, t.type, t.category, t.date
+      t.description,
+      t.amount,
+      t.type,
+      t.category,
+      t.date
     ])
   ];
 
@@ -356,7 +760,7 @@ $("exportCSV").addEventListener("click", () => {
     row.map(value =>
       `"${String(value).replace(/"/g, '""')}"`
     ).join(",")
-  ).join("\r\n");
+  ).join("\n");
 
   const blob = new Blob(["\uFEFF" + csv], {
     type: "text/csv;charset=utf-8;"
@@ -364,17 +768,17 @@ $("exportCSV").addEventListener("click", () => {
 
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
+
   link.href = url;
-  link.download = "neon-transactions.csv";
+  link.download = "neon-expense-report.csv";
   link.click();
+
   URL.revokeObjectURL(url);
 });
 
-$("themeToggle").addEventListener("click", () => {
-  document.body.classList.toggle("light-mode");
-  $("themeToggle").textContent =
-    document.body.classList.contains("light-mode") ? "☾" : "☼";
-});
+/* =========================================
+   INITIAL STARTUP
+   ========================================= */
 
-updateDashboard();
-renderTransactions();
+if ($("date")) {
+  $("date").value = d
